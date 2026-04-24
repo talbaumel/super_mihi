@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Super Mihi Bros</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #5c94fc;
+    height: 100%;
+    overflow: hidden;
+    font-family: "Press Start 2P", monospace, sans-serif;
+    color: #fff;
+    image-rendering: pixelated;
+  }
+  #game {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background: linear-gradient(#5c94fc 0%, #5c94fc 70%, #87b8ff 100%);
+    image-rendering: pixelated;
+  }
+  #world {
+    position: absolute;
+    left: 0;
+    top: 0;
+    transform-origin: 0 0;
+    will-change: transform;
+  }
+  .sprite {
+    position: absolute;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    transform-origin: center;
+    pointer-events: none;
+  }
+  .face-left { transform: scaleX(-1); }
+  #hud {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    display: flex;
+    justify-content: space-between;
+    font-family: monospace;
+    font-size: 22px;
+    text-shadow: 2px 2px 0 #000;
+    z-index: 10;
+    user-select: none;
+  }
+  #hud .group { display: flex; align-items: center; gap: 8px; }
+  #hud img { image-rendering: pixelated; height: 32px; }
+  #overlay {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    background: rgba(0,0,0,0.55);
+    color: #fff;
+    font-family: monospace;
+    text-align: center;
+    z-index: 20;
+  }
+  #overlay h1 { font-size: 48px; margin: 0 0 12px; text-shadow: 3px 3px 0 #000; }
+  #overlay p { font-size: 20px; margin: 4px; }
+  #overlay button {
+    margin-top: 18px;
+    padding: 10px 24px;
+    font-size: 18px;
+    font-family: monospace;
+    background: #e52521;
+    color: #fff;
+    border: 3px solid #fff;
+    cursor: pointer;
+  }
+  #controls {
+    position: absolute;
+    bottom: 8px;
+    left: 12px;
+    font-family: monospace;
+    font-size: 13px;
+    opacity: 0.85;
+    text-shadow: 1px 1px 0 #000;
+    z-index: 10;
+  }
+</style>
+</head>
+<body>
+<div id="game">
+  <div id="hud">
+    <div class="group"><img src="sprites/extracted/sprite_000.png" alt="lives"/>×<span id="lives">3</span></div>
+    <div class="group"><img src="sprites/extracted/sprite_039.png" alt="coins"/>×<span id="coins">0</span></div>
+    <div class="group">WORLD 1-1</div>
+    <div class="group">SCORE <span id="score">0</span></div>
+  </div>
+  <div id="world"></div>
+  <div id="controls">← → move &nbsp; SHIFT run &nbsp; SPACE / ↑ jump &nbsp; R restart</div>
+  <div id="overlay">
+    <h1 id="overlay-title">GAME OVER</h1>
+    <p id="overlay-sub"></p>
+    <button onclick="Game.restart()">PLAY AGAIN</button>
+  </div>
+</div>
+<script src="game.js"></script>
+</body>
+</html>
