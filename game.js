@@ -1,20 +1,28 @@
 // Super Mihi Bros — a tiny side-scrolling platformer
-// Sprite atlas extracted into sprites/extracted/sprite_NNN.png
+// Atlas sprites:    sprites/extracted/sprite_NNN.png       (indices 0–999)
+// Character sheet:  sprites/extracted/character/character_NNN.png
+//                   (indices >= 1000, file index = idx - 1000)
 (() => {
-  const SPR = (n) => `sprites/extracted/sprite_${String(n).padStart(3,'0')}.png`;
+  const CHAR_BASE = 1000;
+  const SPR = (n) => n >= CHAR_BASE
+    ? `sprites/extracted/character/character_${String(n - CHAR_BASE).padStart(3,'0')}.png`
+    : `sprites/extracted/sprite_${String(n).padStart(3,'0')}.png`;
 
   // Sprite groupings from the sheet (81 sprites: 000–080)
   const S = {
-    idle:   [0, 1, 2, 3],
-    // 6-frame walk cycle.
-    walk:   [4, 5, 6, 7, 8, 9],
-    // 5-frame run cycle (with dust kicks).
-    run:    [10, 11, 12, 13, 14],
-    jump:   [20, 21],
-    fall:   [23, 25],
-    duck:   [34, 35, 36],
-    death:  [57],
-    hurt:   [67],
+    // Player animations come from sprites/main_charcter.png
+    // (extracted into sprites/extracted/character/).
+    idle:   [1000, 1001, 1002],                        // 3 frames
+    walk:   [1003, 1004, 1005, 1006, 1007, 1008, 1009, 1010,
+             1011, 1012, 1013, 1014, 1015, 1016, 1017, 1018, 1019], // 17 frames
+    run:    [1020, 1021, 1022, 1023, 1024, 1025, 1026, 1027,
+             1028, 1029, 1030, 1031, 1032, 1033, 1034, 1035],       // 16 frames
+    // Jump strip (5 frames): crouch → leap → peak → descend → pre-land
+    jumpStrip: [1036, 1037, 1038, 1039, 1040],
+    land:   [1041, 1042, 1043],                        // 3 frames (on touchdown)
+    powerup:[1044, 1045, 1046, 1047, 1048],            // 5 frames (mushroom grow)
+    hurt:   [1049, 1050, 1051, 1052],                  // 4 frames
+    death:  [1052],                                    // last hurt frame: lying down
     mushroom: 15,
     star: 16,
     flower: 17,
@@ -38,6 +46,21 @@
 
   // Natural sprite sizes [w, h] from the atlas — used to preserve aspect ratio.
   const NAT = {
+    // --- Player frames (from sprites/extracted/character/, indices 1000+)
+    1000:[64,120], 1001:[64,120], 1002:[64,120],
+    1003:[82,126], 1004:[82,126], 1005:[82,126], 1006:[82,126], 1007:[82,126],
+    1008:[82,126], 1009:[82,126], 1010:[82,126], 1011:[82,126], 1012:[82,126],
+    1013:[82,126], 1014:[82,126], 1015:[82,126], 1016:[82,126], 1017:[82,126],
+    1018:[82,126], 1019:[82,126],
+    1020:[89,111], 1021:[89,111], 1022:[89,111], 1023:[89,111], 1024:[89,111],
+    1025:[89,111], 1026:[89,111], 1027:[89,111], 1028:[89,111], 1029:[89,111],
+    1030:[89,111], 1031:[89,111], 1032:[89,111], 1033:[89,111], 1034:[89,111],
+    1035:[89,111],
+    1036:[87,120], 1037:[87,120], 1038:[87,120], 1039:[87,120], 1040:[87,120],
+    1041:[105,115], 1042:[105,115], 1043:[105,115],
+    1044:[84,122], 1045:[84,122], 1046:[84,122], 1047:[84,122], 1048:[84,122],
+    1049:[129,120], 1050:[129,120], 1051:[129,120], 1052:[129,120],
+    // --- Atlas frames (sprites/extracted/sprite_NNN.png)
     0:[56,112],   1:[56,112],   2:[56,112],   3:[56,112],
     4:[63,106],   5:[63,106],   6:[63,106],   7:[63,106],   8:[63,106],   9:[63,106],
     10:[78,106],  11:[78,106],  12:[78,106],  13:[78,106],  14:[78,106],
@@ -192,15 +215,16 @@
   pyramid(45 * TILE, 4);
   pyramid(55 * TILE, 4);
 
-  // Pipes (collidable). Pipe sprite scaled to 2*TILE wide, height preserved.
+  // Pipes (collidable). The sprite is rendered to EXACTLY fill the collision
+  // rectangle so the visible pipe top matches the surface the player stands on.
+  // (The pipe sprite has a wide lip, so non-uniform stretch is unnoticeable.)
   function addPipe(x, heightTiles) {
+    const w = 2 * TILE;
     const h = heightTiles * TILE;
     const y = GROUND_Y - h;
-    pipes.push({x, y, w: 2 * TILE, h});
-    platforms.push({x, y, w: 2 * TILE, h, type: 'pipe'});
-    const sz = sizeForWidth(S.pipe, 2 * TILE);
-    // anchor pipe to bottom of collision box; if natural height < collision, leave gap at top.
-    decorations.push({sprite: SPR(S.pipe), x, y: GROUND_Y - sz.h, w: sz.w, h: sz.h});
+    pipes.push({x, y, w, h});
+    platforms.push({x, y, w, h, type: 'pipe'});
+    decorations.push({sprite: SPR(S.pipe), x, y, w, h});
   }
   addPipe(13 * TILE, 2);
   addPipe(25 * TILE, 3);
@@ -270,6 +294,9 @@
     state: 'idle',
     animT: 0,
     animFrame: 0,
+    landT: 0,
+    powerupT: 0,
+    hurtT: 0,
     dead: false,
     deathT: 0,
     won: false,
@@ -470,6 +497,7 @@
       player.big = false;
       player.h = PLAYER_SMALL_H;
       player.invincT = 1.5;
+      player.hurtT = 0.5;
     } else {
       killPlayer();
     }
@@ -572,9 +600,15 @@
 
     // Move with collisions
     if (player.x < 0) { player.x = 0; player.vx = Math.max(0, player.vx); }
+    const prevOnGround = player.onGround;
+    const prevVy = player.vy;
     const res = moveAndCollide(player, player.vx * dt, player.vy * dt, platforms);
     player.onGround = res.onGround;
     if (res.bumped) hitBlock(res.bumped);
+    // Landing impact → play land anim briefly when touching down after a real fall.
+    if (!prevOnGround && player.onGround && prevVy > 280) {
+      player.landT = 0.22;
+    }
 
     // Off-screen fall
     if (player.y > WORLD_HEIGHT + 100) {
@@ -677,6 +711,7 @@
           const dh = PLAYER_BIG_H - PLAYER_SMALL_H;
           player.h = PLAYER_BIG_H;
           player.y -= dh;
+          player.powerupT = 0.5;
         }
         stats.score += 1000;
         spawnEffect('score', it.x, it.y - 4, 1000);
@@ -720,12 +755,21 @@
 
     // Invincibility timer
     if (player.invincT > 0) player.invincT -= dt;
+    if (player.powerupT > 0) player.powerupT -= dt;
+    if (player.landT > 0) player.landT -= dt;
+    if (player.hurtT > 0) player.hurtT -= dt;
 
     // Animation state
     player.animT += dt;
     let nextState;
-    if (!player.onGround) {
+    if (player.hurtT > 0) {
+      nextState = 'hurt';
+    } else if (player.powerupT > 0) {
+      nextState = 'powerup';
+    } else if (!player.onGround) {
       nextState = player.vy < 0 ? 'jump' : 'fall';
+    } else if (player.landT > 0 && Math.abs(player.vx) < WALK_MAX) {
+      nextState = 'land';
     } else if (Math.abs(player.vx) > 10) {
       nextState = Math.abs(player.vx) > WALK_MAX + 10 ? 'run' : 'walk';
     } else {
@@ -744,8 +788,39 @@
     switch (player.state) {
       case 'walk': frames = S.walk; break;
       case 'run':  frames = S.run; break;
-      case 'jump': return { a: S.jump[0], b: S.jump[0], t: 0 };
-      case 'fall': return { a: S.fall[0], b: S.fall[0], t: 0 };
+      case 'jump': {
+        // Select from jumpStrip by vertical velocity.
+        //  vy < -200: still rising strongly      → 1014 (leap) (briefly 1013 at liftoff)
+        //  -200 ≤ vy ≤ 120: near apex             → 1015 (peak)
+        const vy = player.vy;
+        let idx;
+        if (player.animT < 0.06) idx = S.jumpStrip[0];           // crouch/liftoff
+        else if (vy < -200)      idx = S.jumpStrip[1];           // leap
+        else                     idx = S.jumpStrip[2];           // peak
+        return { a: idx, b: idx, t: 0 };
+      }
+      case 'fall': {
+        const idx = player.vy > 520 ? S.jumpStrip[4] : S.jumpStrip[3];
+        return { a: idx, b: idx, t: 0 };
+      }
+      case 'land': {
+        // Play the 3-frame land anim across landT's 0.22s window.
+        const progress = 1 - Math.max(0, player.landT) / 0.22;
+        const idx = S.land[Math.min(S.land.length - 1, Math.floor(progress * S.land.length))];
+        return { a: idx, b: idx, t: 0 };
+      }
+      case 'powerup': {
+        // Play the 5-frame powerup anim across powerupT's 0.5s window.
+        const progress = 1 - Math.max(0, player.powerupT) / 0.5;
+        const idx = S.powerup[Math.min(S.powerup.length - 1, Math.floor(progress * S.powerup.length))];
+        return { a: idx, b: idx, t: 0 };
+      }
+      case 'hurt': {
+        // Play the hurt anim across hurtT's 0.5s window.
+        const progress = 1 - Math.max(0, player.hurtT) / 0.5;
+        const idx = S.hurt[Math.min(S.hurt.length - 1, Math.floor(progress * S.hurt.length))];
+        return { a: idx, b: idx, t: 0 };
+      }
       case 'idle': {
         // Idle is a subtle breathing cycle. Snap between frames (no cross-fade)
         // because the sprites share a canvas but the character bobs vertically,
@@ -758,18 +833,16 @@
     }
     let fps;
     if (player.state === 'walk') {
-      fps = 4 + (Math.abs(player.vx) / WALK_MAX) * 8; // 4–12
+      fps = 8 + (Math.abs(player.vx) / WALK_MAX) * 6;  // 8–14
     } else if (player.state === 'run') {
-      fps = 10 + (Math.abs(player.vx) / RUN_MAX) * 8; // 10–18
+      fps = 14 + (Math.abs(player.vx) / RUN_MAX) * 8;  // 14–22
     } else {
       fps = 3;
     }
-    const cyc = player.animT * fps;
-    const base = Math.floor(cyc);
-    const t = cyc - base;
-    const a = frames[base % frames.length];
-    const b = frames[(base + 1) % frames.length];
-    return { a, b, t };
+    // Snap frames (no cross-fade). Cross-fading pixel-art limbs produces a
+    // ghosted double-exposure look, so we show one crisp frame at a time.
+    const idx = frames[Math.floor(player.animT * fps) % frames.length];
+    return { a: idx, b: idx, t: 0 };
   }
 
   function applyPlayerLayer(el, idx, alpha) {
@@ -842,6 +915,9 @@
     player.facing = 1;
     player.dead = false;
     player.invincT = 1.5;
+    player.hurtT = 0;
+    player.powerupT = 0;
+    player.landT = 0;
     player.big = false;
     player.h = PLAYER_SMALL_H;
   }

@@ -20,7 +20,10 @@
   #game {
     position: relative;
     width: 100vw;
+    width: 100dvw;
     height: 100vh;
+    height: 100svh;
+    height: 100dvh;
     overflow: hidden;
     background: linear-gradient(#5c94fc 0%, #5c94fc 70%, #87b8ff 100%);
     image-rendering: pixelated;
@@ -100,14 +103,14 @@
   }
   #touch-controls .pad {
     position: absolute;
-    bottom: max(24px, env(safe-area-inset-bottom, 0px));
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 28px);
     display: flex;
     gap: 18px;
     pointer-events: auto;
     touch-action: none;
   }
-  #touch-controls .left-pad { left: max(24px, env(safe-area-inset-left, 0px)); }
-  #touch-controls .right-pad { right: max(24px, env(safe-area-inset-right, 0px)); }
+  #touch-controls .left-pad { left: calc(env(safe-area-inset-left, 0px) + 24px); }
+  #touch-controls .right-pad { right: calc(env(safe-area-inset-right, 0px) + 24px); }
   #touch-controls .btn {
     width: 84px;
     height: 84px;
@@ -152,7 +155,7 @@
 <div id="game">
   <div id="hud">
     <div class="group"><img src="sprites/extracted/sprite_000.png" alt="lives"/>×<span id="lives">3</span></div>
-    <div class="group"><img src="sprites/extracted/sprite_042.png" alt="coins"/>×<span id="coins">0</span></div>
+    <div class="group"><img src="sprites/extracted/sprite_044.png" alt="coins"/>×<span id="coins">0</span></div>
     <div class="group">WORLD 1-1</div>
     <div class="group">SCORE <span id="score">0</span></div>
   </div>
