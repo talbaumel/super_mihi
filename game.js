@@ -746,6 +746,14 @@
       case 'run':  frames = S.run; break;
       case 'jump': return { a: S.jump[0], b: S.jump[0], t: 0 };
       case 'fall': return { a: S.fall[0], b: S.fall[0], t: 0 };
+      case 'idle': {
+        // Idle is a subtle breathing cycle. Snap between frames (no cross-fade)
+        // because the sprites share a canvas but the character bobs vertically,
+        // and tweening makes the silhouette appear to shrink/ghost at the top.
+        const idleFps = 3;
+        const idx = S.idle[Math.floor(player.animT * idleFps) % S.idle.length];
+        return { a: idx, b: idx, t: 0 };
+      }
       default:     frames = S.idle;
     }
     let fps;
