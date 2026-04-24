@@ -87,18 +87,75 @@
     text-shadow: 1px 1px 0 #000;
     z-index: 10;
   }
+  #touch-controls {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 15;
+    display: none;
+  }
+  #touch-controls .pad {
+    position: absolute;
+    bottom: 24px;
+    display: flex;
+    gap: 14px;
+    pointer-events: auto;
+  }
+  #touch-controls .left-pad { left: 24px; }
+  #touch-controls .right-pad { right: 24px; }
+  #touch-controls .btn {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.25);
+    border: 3px solid rgba(255,255,255,0.7);
+    color: #fff;
+    font-family: monospace;
+    font-size: 28px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-shadow: 2px 2px 0 #000;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+  }
+  #touch-controls .btn.run { background: rgba(229,37,33,0.45); }
+  #touch-controls .btn.jump { background: rgba(60,180,75,0.45); width: 88px; height: 88px; font-size: 22px; }
+  #touch-controls .btn:active, #touch-controls .btn.pressed {
+    background: rgba(255,255,255,0.55);
+    transform: scale(0.94);
+  }
+  body.touch #touch-controls { display: block; }
+  body.touch #controls { display: none; }
+  @media (max-width: 900px) and (pointer: coarse) {
+    #touch-controls { display: block; }
+    #controls { display: none; }
+  }
 </style>
 </head>
 <body>
 <div id="game">
   <div id="hud">
     <div class="group"><img src="sprites/extracted/sprite_000.png" alt="lives"/>×<span id="lives">3</span></div>
-    <div class="group"><img src="sprites/extracted/sprite_039.png" alt="coins"/>×<span id="coins">0</span></div>
+    <div class="group"><img src="sprites/extracted/sprite_042.png" alt="coins"/>×<span id="coins">0</span></div>
     <div class="group">WORLD 1-1</div>
     <div class="group">SCORE <span id="score">0</span></div>
   </div>
   <div id="world"></div>
   <div id="controls">← → move &nbsp; SHIFT run &nbsp; SPACE / ↑ jump &nbsp; R restart</div>
+  <div id="touch-controls">
+    <div class="pad left-pad">
+      <div class="btn" data-key="ArrowLeft">◀</div>
+      <div class="btn" data-key="ArrowRight">▶</div>
+    </div>
+    <div class="pad right-pad">
+      <div class="btn run" data-key="ShiftLeft">RUN</div>
+      <div class="btn jump" data-key="Space">JUMP</div>
+    </div>
+  </div>
   <div id="overlay">
     <h1 id="overlay-title">GAME OVER</h1>
     <p id="overlay-sub"></p>
@@ -106,5 +163,35 @@
   </div>
 </div>
 <script src="game.js"></script>
+<script>
+  (function setupTouchControls() {
+    const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    if (isTouch) document.body.classList.add('touch');
+    const fire = (type, code) => {
+      window.dispatchEvent(new KeyboardEvent(type, { code, key: code, bubbles: true }));
+    };
+    document.querySelectorAll('#touch-controls .btn').forEach((btn) => {
+      const code = btn.dataset.key;
+      const press = (e) => {
+        e.preventDefault();
+        if (btn.classList.contains('pressed')) return;
+        btn.classList.add('pressed');
+        fire('keydown', code);
+      };
+      const release = (e) => {
+        e.preventDefault();
+        if (!btn.classList.contains('pressed')) return;
+        btn.classList.remove('pressed');
+        fire('keyup', code);
+      };
+      btn.addEventListener('touchstart', press, { passive: false });
+      btn.addEventListener('touchend', release, { passive: false });
+      btn.addEventListener('touchcancel', release, { passive: false });
+      btn.addEventListener('mousedown', press);
+      btn.addEventListener('mouseup', release);
+      btn.addEventListener('mouseleave', release);
+    });
+  })();
+</script>
 </body>
 </html>

@@ -3,63 +3,66 @@
 (() => {
   const SPR = (n) => `sprites/extracted/sprite_${String(n).padStart(3,'0')}.png`;
 
-  // Sprite groupings from the sheet (79 sprites)
+  // Sprite groupings from the sheet (81 sprites: 000–080)
   const S = {
     idle:   [0, 1, 2, 3],
-    // Full 4-frame walk cycle: contact → passing → contact (mirror) → passing.
-    walk:   [4, 5, 6, 7],
-    // Full 4-frame run cycle with dust kicks.
-    run:    [8, 9, 10, 11],
-    jump:   [16, 18],
-    fall:   [20, 22],
-    duck:   [31, 32, 33],
-    death:  [52],
-    hurt:   [50],
-    mushroom: 12,
-    star: 13,
-    flower: 14,
-    feather: 15,
-    coin: 39,
-    goomba: 28,
-    koopa: 29,
-    piranha: 30,
-    brick: 40,
-    qblock: 41,
+    // 6-frame walk cycle.
+    walk:   [4, 5, 6, 7, 8, 9],
+    // 5-frame run cycle (with dust kicks).
+    run:    [10, 11, 12, 13, 14],
+    jump:   [20, 21],
+    fall:   [23, 25],
+    duck:   [34, 35, 36],
+    death:  [57],
+    hurt:   [67],
+    mushroom: 15,
+    star: 16,
+    flower: 17,
+    feather: 18,
+    coin: 44,
+    goomba: 31,
+    koopa: 32,
+    piranha: 33,
+    brick: 45,
+    qblock: 46,
     pipe: 72,
     bush: 78,
     qblock2: 75,
     brickAlt: 76,
     brickAlt2: 77,
     hill: 73,
-    flag: 68,
-    castle: 67,
+    flag: 79,
+    castle: 80,
     ground: [69, 70, 71],
   };
 
   // Natural sprite sizes [w, h] from the atlas — used to preserve aspect ratio.
   const NAT = {
-    0:[62,119],   1:[61,117],   2:[60,118],   3:[62,116],
-    4:[65,114],   5:[63,113],   6:[61,112],   7:[66,111],
-    8:[97,109],   9:[70,108],   10:[96,113],  11:[97,113],
-    12:[56,63],   13:[58,62],   14:[54,63],   15:[56,62],
-    16:[79,115],  17:[68,107],  18:[78,112],  19:[68,103],
-    20:[68,105],  21:[73,104],  22:[71,105],  23:[67,103],
-    24:[71,102],  25:[59,105],  26:[57,111],  27:[62,88],
-    28:[66,72],   29:[79,93],   30:[78,128],
-    31:[65,85],   32:[67,85],   33:[68,84],   34:[384,87],
-    35:[58,102],  36:[72,108],  37:[70,108],  38:[59,106],
-    39:[52,63],   40:[64,62],   41:[62,62],
-    42:[60,165],  43:[60,165],
-    44:[89,106],  45:[85,105],  46:[89,106],  47:[92,109],
-    48:[58,124],  49:[58,103],  50:[59,92],   51:[80,68],
-    52:[98,41],   53:[53,55],   54:[41,52],
-    55:[43,42],   56:[43,41],   57:[43,42],
-    58:[101,146], 59:[52,85],   60:[55,87],   61:[74,114],
-    62:[58,108],  63:[58,109],  64:[59,109],  65:[68,113],
-    66:[61,106],  67:[244,157], 68:[72,155],
-    69:[130,62],  70:[102,62],  71:[112,63],
-    72:[72,84],   73:[116,78],  74:[87,78],
-    75:[54,56],   76:[59,58],   77:[60,60],   78:[104,50],
+    0:[56,112],   1:[56,112],   2:[56,112],   3:[56,112],
+    4:[63,106],   5:[63,106],   6:[63,106],   7:[63,106],   8:[63,106],   9:[63,106],
+    10:[78,106],  11:[78,106],  12:[78,106],  13:[78,106],  14:[78,106],
+    15:[52,57],   16:[53,56],   17:[50,59],   18:[50,59],
+    19:[61,73],   20:[66,94],
+    21:[72,105],  22:[72,104],  23:[67,103],
+    24:[63,102],  25:[67,103],  26:[61,97],   27:[62,98],   28:[61,97],
+    29:[55,97],   30:[54,97],
+    31:[66,75],   32:[71,95],   33:[72,122],
+    34:[66,79],   35:[66,79],   36:[66,79],
+    37:[54,92],   38:[55,89],   39:[54,87],
+    40:[59,95],   41:[55,95],   42:[64,95],   43:[54,95],
+    44:[47,59],   45:[57,59],   46:[57,59],
+    47:[84,103],  48:[85,104],  49:[90,104],  50:[100,104],
+    51:[57,130],  52:[57,183],  53:[58,183],
+    54:[55,102],  55:[75,89],   56:[77,60],
+    57:[63,38],   58:[53,53],   59:[34,48],
+    60:[50,83],   61:[50,85],
+    62:[76,114],  63:[104,153],
+    64:[56,104],  65:[56,103],  66:[56,103],
+    67:[66,107],  68:[65,105],
+    69:[122,58],  70:[104,58],  71:[106,58],
+    72:[68,75],   73:[107,81],  74:[105,81],
+    75:[57,58],   76:[58,58],   77:[58,58],   78:[43,52],
+    79:[64,154],  80:[92,156],
   };
 
   // World constants — units are pixels in world space
@@ -256,7 +259,7 @@
   const PLAYER_BIG_H = 116;
   // Reference natural height that maps to PLAYER_SMALL_H. All player frames are
   // drawn at the SAME pixel scale so the character does not pulse between frames.
-  const PLAYER_REF_H = NAT[S.idle[0]][1]; // 119
+  const PLAYER_REF_H = NAT[S.idle[0]][1]; // 115
   const player = {
     x: 80, y: GROUND_Y - PLAYER_SMALL_H, w: 40, h: PLAYER_SMALL_H,
     vx: 0, vy: 0,
@@ -767,10 +770,10 @@
       el.src = targetSrc;
       el.dataset.src = targetSrc;
     }
-    const playerScale = player.h / PLAYER_REF_H;
     const nat = NAT[idx];
+    const playerScale = player.h / nat[1];
     const renderW = nat[0] * playerScale;
-    const renderH = nat[1] * playerScale;
+    const renderH = player.h;
     const renderX = player.x + (player.w - renderW) / 2;
     const renderY = player.y + (player.h - renderH);
     el.style.left = renderX + 'px';
