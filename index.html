@@ -2,6 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
 <title>Super Mihi Bros</title>
 <style>
   html, body {
@@ -93,25 +96,27 @@
     pointer-events: none;
     z-index: 15;
     display: none;
+    touch-action: none;
   }
   #touch-controls .pad {
     position: absolute;
-    bottom: 24px;
+    bottom: max(24px, env(safe-area-inset-bottom, 0px));
     display: flex;
-    gap: 14px;
+    gap: 18px;
     pointer-events: auto;
+    touch-action: none;
   }
-  #touch-controls .left-pad { left: 24px; }
-  #touch-controls .right-pad { right: 24px; }
+  #touch-controls .left-pad { left: max(24px, env(safe-area-inset-left, 0px)); }
+  #touch-controls .right-pad { right: max(24px, env(safe-area-inset-right, 0px)); }
   #touch-controls .btn {
-    width: 72px;
-    height: 72px;
+    width: 84px;
+    height: 84px;
     border-radius: 50%;
-    background: rgba(255,255,255,0.25);
-    border: 3px solid rgba(255,255,255,0.7);
+    background: rgba(255,255,255,0.28);
+    border: 3px solid rgba(255,255,255,0.75);
     color: #fff;
     font-family: monospace;
-    font-size: 28px;
+    font-size: 34px;
     font-weight: bold;
     display: flex;
     align-items: center;
@@ -121,16 +126,23 @@
     -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
     touch-action: none;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.35);
   }
-  #touch-controls .btn.run { background: rgba(229,37,33,0.45); }
-  #touch-controls .btn.jump { background: rgba(60,180,75,0.45); width: 88px; height: 88px; font-size: 22px; }
-  #touch-controls .btn:active, #touch-controls .btn.pressed {
-    background: rgba(255,255,255,0.55);
-    transform: scale(0.94);
+  #touch-controls .btn.run { background: rgba(229,37,33,0.5); font-size: 18px; }
+  #touch-controls .btn.jump {
+    background: rgba(60,180,75,0.5);
+    width: 104px;
+    height: 104px;
+    font-size: 22px;
+  }
+  #touch-controls .btn.pressed {
+    background: rgba(255,255,255,0.6);
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.35);
   }
   body.touch #touch-controls { display: block; }
   body.touch #controls { display: none; }
-  @media (max-width: 900px) and (pointer: coarse) {
+  @media (pointer: coarse), (max-width: 900px) {
     #touch-controls { display: block; }
     #controls { display: none; }
   }
@@ -167,29 +179,73 @@
   (function setupTouchControls() {
     const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
     if (isTouch) document.body.classList.add('touch');
+
+    // Disable double-tap zoom and long-press context menu inside the game.
+    document.addEventListener('gesturestart', (e) => e.preventDefault());
+    document.addEventListener('contextmenu', (e) => {
+      if (e.target.closest('#touch-controls')) e.preventDefault();
+    });
+
+    const buttons = Array.from(document.querySelectorAll('#touch-controls .btn'));
     const fire = (type, code) => {
       window.dispatchEvent(new KeyboardEvent(type, { code, key: code, bubbles: true }));
     };
-    document.querySelectorAll('#touch-controls .btn').forEach((btn) => {
-      const code = btn.dataset.key;
-      const press = (e) => {
-        e.preventDefault();
-        if (btn.classList.contains('pressed')) return;
-        btn.classList.add('pressed');
-        fire('keydown', code);
-      };
-      const release = (e) => {
-        e.preventDefault();
-        if (!btn.classList.contains('pressed')) return;
-        btn.classList.remove('pressed');
-        fire('keyup', code);
-      };
-      btn.addEventListener('touchstart', press, { passive: false });
-      btn.addEventListener('touchend', release, { passive: false });
-      btn.addEventListener('touchcancel', release, { passive: false });
-      btn.addEventListener('mousedown', press);
-      btn.addEventListener('mouseup', release);
-      btn.addEventListener('mouseleave', release);
+    const press = (btn) => {
+      if (!btn || btn.classList.contains('pressed')) return;
+      btn.classList.add('pressed');
+      fire('keydown', btn.dataset.key);
+    };
+    const release = (btn) => {
+      if (!btn || !btn.classList.contains('pressed')) return;
+      btn.classList.remove('pressed');
+      fire('keyup', btn.dataset.key);
+    };
+    const releaseAll = () => buttons.forEach(release);
+
+    // Map: pointerId -> currently pressed button, so dragging across buttons works.
+    const active = new Map();
+    const btnAtPoint = (x, y) => {
+      const el = document.elementFromPoint(x, y);
+      return el ? el.closest('#touch-controls .btn') : null;
+    };
+
+    const root = document.getElementById('touch-controls');
+    root.addEventListener('pointerdown', (e) => {
+      const btn = btnAtPoint(e.clientX, e.clientY);
+      if (!btn) return;
+      e.preventDefault();
+      active.set(e.pointerId, btn);
+      press(btn);
+    });
+    root.addEventListener('pointermove', (e) => {
+      if (!active.has(e.pointerId)) return;
+      e.preventDefault();
+      const prev = active.get(e.pointerId);
+      const next = btnAtPoint(e.clientX, e.clientY);
+      if (next === prev) return;
+      release(prev);
+      if (next) {
+        active.set(e.pointerId, next);
+        press(next);
+      } else {
+        active.delete(e.pointerId);
+      }
+    });
+    const endPointer = (e) => {
+      const btn = active.get(e.pointerId);
+      if (!btn) return;
+      e.preventDefault();
+      release(btn);
+      active.delete(e.pointerId);
+    };
+    root.addEventListener('pointerup', endPointer);
+    root.addEventListener('pointercancel', endPointer);
+    root.addEventListener('pointerleave', endPointer);
+
+    // Safety: release everything if window loses focus or tab is hidden.
+    window.addEventListener('blur', releaseAll);
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) releaseAll();
     });
   })();
 </script>
